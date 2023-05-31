@@ -93,6 +93,7 @@ class Contrast:
         """
         # 1.) do some checks if the data is in a reasonable shape
         # Are the dimensions correct?
+        print("testing changes for github")
         if len(psf_template.shape) != 2:
             raise ValueError("psf_template needs to be a 2d numpy array. "
                              "Only exactly two dimensions are supported!")
