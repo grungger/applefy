@@ -1,2 +1,7 @@
 
 *.pyc
+applefy/.DS_Store
+applefy/statistics/.DS_Store
+applefy/detections/.DS_Store
+applefy/utils/.DS_Store
+applefy/wrappers/.DS_Store

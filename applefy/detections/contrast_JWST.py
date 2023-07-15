@@ -15,6 +15,8 @@ import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
 
+from pynpoint import Pypeline
+
 from applefy.utils.file_handling import save_as_fits, open_fits, \
     create_checkpoint_folders, search_for_config_and_residual_files
 from applefy.utils.photometry import AperturePhotometryMode
@@ -43,8 +45,11 @@ class Contrast:
 
     def __init__(
             self,
+            pipeline: Pypeline,
             science_sequence: np.ndarray,
+            science_dir: str,
             psf_template: np.ndarray,
+            psf_dir: str,
             psf_fwhm_radius: float,
             parang_rad: np.ndarray,
             dit_science: float,
@@ -58,13 +63,16 @@ class Contrast:
         results (such as residuals with fake planets) can be restored.
 
         Args:
+            database: pipeline instance
             science_sequence: A 3d numpy array of the observation
                 sequence without any fake planets.
                 Dimensions (time, x, y). dim(x) == dim (y). We recommend an
                 add pixel resolution!
+            science_tag: database tag to science .fits file
             psf_template: A 2d numpy array with the psf-template
                 (usually the unsaturated star). We recommend an add pixel
                 resolution!
+            psf_dir: directory path to psf_template .fits file
             psf_fwhm_radius: The FWHM (radius) of the PSF. It is needed to
                 sample independent noise values i.e. it determines the
                 spacing between the noise observations which are extracted
@@ -121,7 +129,9 @@ class Contrast:
 
         # 2.) save the data internally
         self.science_sequence = science_sequence
+        self.science_dir = science_dir
         self.psf_template = psf_template
+        self.psf_dir = psf_dir
         self.parang_rad = parang_rad
         self.dit_science = dit_science
         self.dit_psf_template = dit_psf_template
@@ -258,7 +268,6 @@ class Contrast:
                 files. The default behaviour will raise an error.
 
         """
-
         # 1. Calculate test positions for the fake planets
         # Take the first image of the science_sequence as a test_image
         test_image = self.science_sequence[0]
@@ -380,28 +389,14 @@ class Contrast:
         # 3.) Compute the residuals
         residuals = algorithm_function(
             stack_with_fake_planet,
+            self.science_dir,
+            self.psf_dir,
             self.parang_rad,
-            self.psf_template,
             exp_id)
 
         # 4.) Save the result if needed
         if self.residual_dir is None:
             return exp_id, residuals
-
-        # for each method and residual pair
-        for tmp_method_key, tmp_residual in residuals.items():
-
-            # Create a subdirectory for the method if it does not exist
-            tmp_sub_dir = self.residual_dir / tmp_method_key
-            if not tmp_sub_dir.is_dir():
-                tmp_sub_dir.mkdir()
-
-            # Save the residual as a .fits file
-            exp_name = "residual_ID_" + exp_id + ".fits"
-            tmp_file = tmp_sub_dir / exp_name
-
-            if not tmp_file.is_file():
-                save_as_fits(tmp_residual, tmp_file)
 
         return exp_id, residuals
 
@@ -438,10 +433,7 @@ class Contrast:
         # The _run_fake_planet_experiment checks if residuals already exist
         # and only computes the missing ones
         print("Running fake planet experiments...", end="")
-        results = Parallel(n_jobs=num_parallel)(
-            delayed(self._run_fake_planet_experiment)(
-                algorithm_function,
-                i) for i in tqdm(self.experimental_setups))
+        results = list(self._run_fake_planet_experiment(algorithm_function, i) for i in tqdm(self.experimental_setups)) 
         tmp_results_dict = dict(results)
         print("[DONE]")
 

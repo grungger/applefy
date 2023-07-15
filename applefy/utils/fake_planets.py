@@ -278,7 +278,7 @@ def add_fake_planets(
     # The IDX 0 case with no fake planets
     if "planet_position" not in experiment_config:
         return input_stack
-
+    
     planet_position = experiment_config["planet_position"]
 
     # Pad or cut the template depending on the size of the science frames
