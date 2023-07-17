@@ -194,7 +194,10 @@ def get_flux(
 
         tmp_apertures = CircularAperture(positions=new_positions,
                                          r=aperture_radius)
-
+        #TODO: remove print
+        # print("ERROR SOURCE parameters: ")
+        # print("frame: ", frame)
+        # print("aperture: ", tmp_apertures)
         photometry_table = aperture_photometry(
             frame,
             tmp_apertures,

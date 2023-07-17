@@ -172,7 +172,9 @@ def sort_fake_planet_results(
         to its experiment ID used by planet_dict.
 
     """
-
+    import pdb
+    pdb.set_trace()
+    # TODO: remove pdb
     # FIRST STEP: Read in all config files and .fits residuals. The sorting step
     # has to be performed afterwards as the configs which have been computed are
     # unknown in advance

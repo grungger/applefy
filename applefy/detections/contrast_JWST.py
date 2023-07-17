@@ -385,7 +385,6 @@ class Contrast:
             dit_psf_template=self.dit_psf_template,
             experiment_config=experimental_setup,
             scaling_factor=self.scaling_factor)
-
         # 3.) Compute the residuals
         residuals = algorithm_function(
             stack_with_fake_planet,
@@ -393,11 +392,11 @@ class Contrast:
             self.psf_dir,
             self.parang_rad,
             exp_id)
+        # residuals is now a dictionary with only entry "Residuals" with value of 3d array
 
         # 4.) Save the result if needed
         if self.residual_dir is None:
             return exp_id, residuals
-
         return exp_id, residuals
 
     def run_fake_planet_experiments(
@@ -434,7 +433,7 @@ class Contrast:
         # and only computes the missing ones
         print("Running fake planet experiments...", end="")
         results = list(self._run_fake_planet_experiment(algorithm_function, i) for i in tqdm(self.experimental_setups)) 
-        tmp_results_dict = dict(results)
+        tmp_results_dict = dict(results) # this is now a dictionary with exp_id as key and residuals as value which is itself a dict with only entry "Residuals"
         print("[DONE]")
 
         # 2. Prepare the results for the ContrastResult
@@ -781,7 +780,13 @@ class ContrastResult:
 
         if self.median_throughput_table is not None:
             return self.median_throughput_table
-
+        
+        # print("COMPUTINGTHROUGHPUT PARAMETERS: ")
+        # print("planet dict: ",self.planet_dict)
+        # print("fp_residual: ", type(self.fp_residual), self.fp_residual)
+        # print("idx_table: ", type(self.idx_table), self.idx_table)
+        # print("stellar flux: ", type(self.stellar_flux),self.stellar_flux)
+        #TODO remove print statements
         self.throughput_dict, self.median_throughput_table = \
             compute_throughput_table(self.planet_dict,
                                      self.fp_residual,
