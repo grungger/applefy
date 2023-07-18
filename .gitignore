@@ -5,3 +5,6 @@ applefy/statistics/.DS_Store
 applefy/detections/.DS_Store
 applefy/utils/.DS_Store
 applefy/wrappers/.DS_Store
+*.iml
+*.xml
+*.txt
