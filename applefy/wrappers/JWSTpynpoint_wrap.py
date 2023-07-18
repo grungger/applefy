@@ -60,20 +60,16 @@ class JWSTSimpleSubtractionPynPoint(DataReductionInterface):
         """
 
         self.scratch_dir = scratch_dir
-        
-
+    
     def get_method_keys(self) -> List[str]:
         """
         Get the method name "PCA (#num_pca components)".
 
         Returns:
-            A list with strings "PCA (#num_pca components)" (one for each
-            value in num_pcas.
-
+            A list with one string "PCA (#num_pca components)".
         """
-        keys = "'get_method_keys' is not yet implemented for JWSTpynpoint wrappers"
 
-        return keys
+        return "Residuals(methodsnotimplemented)"
 
     def __call__(
             self,
@@ -122,7 +118,7 @@ preparation.generate_fake_planet_experiments` for more information about the
             # Disable all print messages from pynpoint
             print("Running SimpleSubtraction... (this may take a while)")
             print("The following steps are performed: \n MultiChannelReader  \
-                   \n PaddingModule \n StarCenterFixedGauss \
+                   \n PaddingModule \
                    \n IFS_normalizeSpectrum \n IFS_binning \
                    \n IFS_RefStarAlignment \n IFS_ClassicalRefSubtraction ")
             sys.stdout = open(os.devnull, 'w')
@@ -202,19 +198,19 @@ preparation.generate_fake_planet_experiments` for more information about the
             # =============================================================================
 
 
-            dat = pipeline.get_data("new_sci_pad")
+            # dat = pipeline.get_data("new_sci_pad")
 
-            shift = StarCenterFixedGauss(dat)
+            # shift = StarCenterFixedGauss(dat)
 
-            module = ShiftImagesModule(name_in='shift',
-                                                image_in_tag='new_sci_pad',
-                                                shift_xy=shift,
-                                                image_out_tag='centered')
-            pipeline.add_module(module)
-            pipeline.run_module("shift")
+            # module = ShiftImagesModule(name_in='shift',
+            #                                     image_in_tag='new_sci_pad',
+            #                                     shift_xy=shift,
+            #                                     image_out_tag='centered')
+            # pipeline.add_module(module)
+            # pipeline.run_module("shift")
 
             module = IFS_normalizeSpectrum(name_in='norm',
-                                           image_in_tag='centered',
+                                           image_in_tag='new_sci_pad',
                                            image_out_tag='normed')
             pipeline.add_module(module)
             pipeline.run_module("norm")
@@ -223,19 +219,19 @@ preparation.generate_fake_planet_experiments` for more information about the
             # Center and Normalize ref target
             # =============================================================================
 
-            dat_ref = pipeline.get_data("ref_pad")
+            # dat_ref = pipeline.get_data("ref_pad")
 
-            shift_ref = StarCenterFixedGauss(dat_ref)
+            # shift_ref = StarCenterFixedGauss(dat_ref)
 
-            module = ShiftImagesModule(name_in='shift_ref',
-                                                image_in_tag='ref_pad',
-                                                shift_xy=shift_ref,
-                                                image_out_tag='centered_ref')
-            pipeline.add_module(module)
-            pipeline.run_module("shift_ref")
+            # module = ShiftImagesModule(name_in='shift_ref',
+            #                                     image_in_tag='ref_pad',
+            #                                     shift_xy=shift_ref,
+            #                                     image_out_tag='centered_ref')
+            # pipeline.add_module(module)
+            # pipeline.run_module("shift_ref")
 
             module = IFS_normalizeSpectrum(name_in='norm_ref',
-                                           image_in_tag='centered_ref',
+                                           image_in_tag='ref_pad',
                                            image_out_tag='normed_ref')
             pipeline.add_module(module)
             pipeline.run_module("norm_ref")
@@ -286,11 +282,10 @@ preparation.generate_fake_planet_experiments` for more information about the
     # TODO: properly output results! and check if header info needs to be saved as well
 
             # 7.) Get the data from the Pynpoint database
-            # result_dict = dict()
+            result_dict = dict()
 
             residuals = pipeline.get_data("Residual")
-            # for idx, tmp_algo_name in enumerate(self.get_method_keys()):
-            #     result_dict[tmp_algo_name] = residuals[idx]
+            result_dict["Residual"] = residuals
 
             # Delete the temporary database
             shutil.rmtree(pynpoint_dir)
@@ -299,7 +294,7 @@ preparation.generate_fake_planet_experiments` for more information about the
             sys.stdout = sys.__stdout__
             print("All PynPoint Modules have run successfully. Finishing up...")
 
-        return residuals #result_dict
+        return result_dict
     
     def set_config_file(self):
         import configparser
