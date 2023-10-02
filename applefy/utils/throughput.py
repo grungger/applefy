@@ -38,7 +38,9 @@ def _compute_throughput_fixed_contrast(
     Returns:
         List of throughput values for every planet
     """
-
+    # import pdb
+    # pdb.set_trace()
+    # TODO: remove pdb
     flux_in = stellar_flux * inserted_flux_ratio
     all_throughput_results = []
 

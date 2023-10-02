@@ -149,6 +149,7 @@ class Contrast:
         self.results_dict = None
         self.stellar_flux = None
         self.contrast_results = None
+        self.pipeline = None
 
     @classmethod
     def create_from_checkpoint_dir(
@@ -287,11 +288,11 @@ class Contrast:
             planet_positions=planet_positions)
 
         # 3. save the config files if requested
-        if self.config_dir is not None:
-            save_experiment_configs(
-                experimental_setups=self.experimental_setups,
-                experiment_config_dir=self.config_dir,
-                overwrite=overwrite)
+        # if self.config_dir is not None:
+        #     save_experiment_configs(
+        #         experimental_setups=self.experimental_setups,
+        #         experiment_config_dir=self.config_dir,
+        #         overwrite=overwrite)
 
     def _check_residuals_exist_and_restore(
             self,
@@ -375,7 +376,7 @@ class Contrast:
                 return exp_id, restored_residuals
 
         # if not run the fake planet experiment
-
+        
         # 2.) create the fake planet stack
         stack_with_fake_planet = add_fake_planets(
             input_stack=self.science_sequence,
@@ -386,17 +387,18 @@ class Contrast:
             experiment_config=experimental_setup,
             scaling_factor=self.scaling_factor)
         # 3.) Compute the residuals
-        residuals = algorithm_function(
+        residuals,pipeline = algorithm_function(
             stack_with_fake_planet,
             self.science_dir,
             self.psf_dir,
             self.parang_rad,
             exp_id)
         # residuals is now a dictionary with only entry "Residuals" with value of 3d array
-
+        
         # 4.) Save the result if needed
         if self.residual_dir is None:
             return exp_id, residuals
+        self.pipeline = pipeline
         return exp_id, residuals
 
     def run_fake_planet_experiments(
@@ -616,7 +618,7 @@ class Contrast:
             contrast_curves_mad, index=separation_index).replace(
             [np.inf, -np.inf], np.inf)
 
-        return pd_contrast_curves, pd_contrast_curves_mad
+        return pd_contrast_curves, pd_contrast_curves_mad, self.pipeline
 
     def compute_contrast_grids(
             self,

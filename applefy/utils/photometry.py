@@ -198,6 +198,11 @@ def get_flux(
         # print("ERROR SOURCE parameters: ")
         # print("frame: ", frame)
         # print("aperture: ", tmp_apertures)
+        # import pdb
+        # pdb.set_trace()
+        if len(frame.shape)>2:
+            assert frame.shape[0]==1, "The frame is 3d; cannot perform photometry."
+            frame = frame[0]
         photometry_table = aperture_photometry(
             frame,
             tmp_apertures,
