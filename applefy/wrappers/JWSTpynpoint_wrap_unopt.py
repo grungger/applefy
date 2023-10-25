@@ -21,6 +21,10 @@ sys.path.append("/Users/Gian/Documents/Github/applefy")
 # =============================================================================
 from applefy.detections.contrast import DataReductionInterface
 
+sys.path.append("C:/Users/BIgsp/Documents/GitHub/Pynpoint_ifs/background_files")
+sys.path.append("C:/Users/BIgsp/Documents/GitHub/Pynpoint_ifs")
+sys.path.append("C:/Users/BIgsp/Documents/GitHub/applefy")
+
 
 # =============================================================================
 # This has to be added once in order to obtain pynpoint correctly
@@ -36,6 +40,7 @@ from IFS_Plot import PlotCenterDependantWavelength, PlotSpectrum
 from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins
 from IFS_basic_subtraction import IFS_ClassicalRefSubstraction
 from center_guess import StarCenterFixedGauss, IFS_RefStarAlignment
+from IFS_PCASubtraction import IFS_PCASubtraction
 from jwstframeselection import SelectWavelengthCenterModuleJWST
 from IFS_Centering import IFS_Centering
 
@@ -492,6 +497,137 @@ preparation.generate_fake_planet_experiments` for more information about the
         config['header']['WAV_START'] = 'CRVAL3'
         config['header']['WAV_INCR'] = 'CDELT3'
         
+        config.add_section('settings')
+        config['settings']['PIXSCALE'] = '0.13'
+        config['settings']['MEMORY'] = 'None'
+        config['settings']['CPU'] = '1'
+
+        with open('PynPoint_config.ini', 'w') as configfile:
+            config.write(configfile)
+
+
+class JWSTPCASubtractionPynPoint_unopt(DataReductionInterface):
+    """
+    The JWSTSimpleSubtractionPynPoint is a wrapper around the Simple Subtraction
+    implemented in `Pynpoint_ifs`__.
+    """
+
+    def __init__(
+            self,
+            num_pcas: List[int],
+            scratch_dir: Path,
+            image_ref_in_tags: List[str],
+            access_pipeline: Optional[bool] = False):
+        """
+        Constructor of the class.
+
+        Args:
+            scratch_dir: A directory to store the Pynpoint database. Any
+                Pynpoint database created during the computation will be deleted
+                afterwards.
+            psf_list: List of psf template directories. If not given only
+                the psf_template inputted in __call__ will be used.
+        """
+
+        self.num_pcas = num_pcas
+        self.scratch_dir = scratch_dir
+        self.publish_pipeline = access_pipeline
+        self.image_ref_in_tags = image_ref_in_tags
+
+    def get_method_keys(self) -> List[str]:
+        """
+        Get the method name "PCA (#num_pca components)".
+
+        Returns:
+            A list with one string "PCA (#num_pca components)".
+        """
+
+        keys = ["PCA (" + str(num_pcas).zfill(3) + " components)"
+                for num_pcas in self.num_pcas]
+
+        return keys
+
+    def __call__(
+            self,
+            stack_with_fake_planet: np.array,
+            stack_dir: str,
+            psf_template: str,
+            parang_rad,
+            exp_id: str
+    ) -> Dict[str, np.ndarray]:
+
+
+        pynpoint_dir = "tmp_pynpoint_" + exp_id
+        pynpoint_dir = Path(self.scratch_dir + "/" + pynpoint_dir)
+
+        if not pynpoint_dir.is_dir():
+            pynpoint_dir.mkdir()
+
+        out_file = h5py.File(
+            pynpoint_dir / "PynPoint_database.hdf5",
+            mode='w')
+
+        out_file.create_dataset("data_with_planet", data=stack_with_fake_planet)
+        # add header information to data_set?
+        out_file.close()
+
+
+
+        # 6.) Create PynPoint Pipeline and run PCA
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # Disable all print messages from pynpoint
+            sys.stdout = open(os.devnull, 'w')
+
+            pipeline = Pypeline(working_place_in=str(pynpoint_dir),
+                                input_place_in=str(pynpoint_dir),
+                                output_place_in=str(pynpoint_dir))
+
+            self.set_config_file()
+
+            pca_subtraction = IFS_PCASubtraction(name_in='pca_subtraction',
+                                                 image_in_tag='data_with_planet',
+                                                 image_out_tag='residuals',
+                                                 image_ref_in_tags=self.image_ref_in_tags,
+                                                 model_out_tag='pca_model',
+                                                 n_pc=self.num_pcas,
+                                                 pca_out_tag='Normed_PCA_components')
+
+            pipeline.add_module(pca_subtraction)
+            pipeline.run_module("pca_subtraction")
+
+        result_dict = dict()
+        residuals = pipeline.get_data("residuals")
+
+        for idx, tmp_algo_name in enumerate(self.get_method_keys()):
+            result_dict[tmp_algo_name] = residuals[idx]
+
+        # Delete the temporary database
+        shutil.rmtree(pynpoint_dir)
+
+        # Enable print messages again
+        sys.stdout = sys.__stdout__
+
+        return result_dict
+
+    def set_config_file(self):
+        import configparser
+        config = configparser.ConfigParser()
+        config.add_section('header')
+        config['header']['INSTRUMENT'] = 'INSTRUME'
+        config['header']['DIT'] = 'EFFINTTM'
+        config['header']['NDIT'] = 'NINTS'
+        config['header']['NFRAMES'] = 'NAXIS3'
+        config['header']['NAXISA'] = 'NAXIS1'
+        config['header']['NAXISB'] = 'NAXIS2'
+        config['header']['DITHER_X'] = 'XOFFSET'
+        config['header']['DITHER_Y'] = 'YOFFSET'
+        config['header']['DATE'] = 'DATE-OBS'
+        config['header']['RA'] = 'TARG_RA'
+        config['header']['DEC'] = 'TARG_DEC'
+        config['header']['WAV_START'] = 'CRVAL3'
+        config['header']['WAV_INCR'] = 'CDELT3'
+
         config.add_section('settings')
         config['settings']['PIXSCALE'] = '0.13'
         config['settings']['MEMORY'] = 'None'
