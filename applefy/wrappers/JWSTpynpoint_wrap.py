@@ -39,9 +39,12 @@ import numpy as np
 from pynpoint import Pypeline, WavelengthReadingModule, FitsReadingModule, FitCenterModule
 from pynpoint import MultiChannelReader, ShiftImagesModule, PaddingModule, DataCubeReplacer
 from IFS_Plot import PlotCenterDependantWavelength, PlotSpectrum
-from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins
+
+from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins, IFS_ClassicalRefSubstraction
 from IFS_PCASubtraction import IFS_PCASubtraction
-from IFS_basic_subtraction import IFS_ClassicalRefSubstraction
+
+from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_ClassicalRefSubstraction, IFS_binning, IFS_collapseBins
+
 from center_guess import StarCenterFixedGauss, IFS_RefStarAlignment
 from jwstframeselection import SelectWavelengthCenterModuleJWST
 from IFS_Centering import IFS_Centering

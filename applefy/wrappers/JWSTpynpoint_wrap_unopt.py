@@ -8,7 +8,7 @@ applefy. It has to be installed separately.
 import sys, os
 import shutil
 import warnings
-from typing import List, Dict, Optional
+from typing import List, Optional, Dict
 from pathlib import Path
 
 
@@ -34,13 +34,14 @@ sys.path.append("C:/Users/BIgsp/Documents/GitHub/applefy")
 import h5py
 import numpy as np
 
-from pynpoint import Pypeline, WavelengthReadingModule, FitsReadingModule, FitCenterModule
+from pynpoint import Pypeline
 from pynpoint import MultiChannelReader, ShiftImagesModule, PaddingModule, DataCubeReplacer
+
 from IFS_Plot import PlotCenterDependantWavelength, PlotSpectrum
-from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins
-from IFS_basic_subtraction import IFS_ClassicalRefSubstraction
+from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins, IFS_ClassicalRefSubstraction
 from center_guess import StarCenterFixedGauss, IFS_RefStarAlignment
 from IFS_PCASubtraction import IFS_PCASubtraction
+
 from jwstframeselection import SelectWavelengthCenterModuleJWST
 from IFS_Centering import IFS_Centering
 
@@ -156,20 +157,6 @@ preparation.generate_fake_planet_experiments` for more information about the
             if self.psf_list is not None:
                 more_stars = True
                 reference_list = self.psf_list
-            
-            # TODO: cleanup
-            #if type(stack_with_fake_planet) is np.ndarray:
-            #     cry
-                
-            # if type(psf_template) is np.ndarray:
-            #     also cry
-                
-                
-            # nframes = int(self.m_image_in_port.get_attribute("NFRAMES")[0])
-
-            # wavelengths = self.m_image_in_port.get_attribute('WAV_ARR')[0].astype(np.float16)
-            # pixelscale = self.m_image_in_port.get_attribute('PIXSCALE')[0].astype(np.float16)
-            # bands = self.m_image_in_port.get_attribute('BAND_ARR')[0].astype(str)
             
             # =============================================================================
             # Set science frame
@@ -308,18 +295,6 @@ preparation.generate_fake_planet_experiments` for more information about the
             # Center and Normalize science target
             # =============================================================================
 
-
-            # dat = pipeline.get_data("new_sci_pad")
-
-            # shift = StarCenterFixedGauss(dat)
-
-            # module = ShiftImagesModule(name_in='shift',
-            #                                     image_in_tag='new_sci_pad',
-            #                                     shift_xy=shift,
-            #                                     image_out_tag='centered')
-            # pipeline.add_module(module)
-            # pipeline.run_module("shift")
-            
             module = IFS_Centering(name_in = "centermod",
                                    image_in_tag = "new_sci_pad",
                                    fit_out_tag = "shift")
@@ -343,17 +318,6 @@ preparation.generate_fake_planet_experiments` for more information about the
             # =============================================================================
             # Center and Normalize ref target
             # =============================================================================
-
-            # dat_ref = pipeline.get_data("ref_pad")
-
-            # shift_ref = StarCenterFixedGauss(dat_ref)
-
-            # module = ShiftImagesModule(name_in='shift_ref',
-            #                                     image_in_tag='ref_pad',
-            #                                     shift_xy=shift_ref,
-            #                                     image_out_tag='centered_ref')
-            # pipeline.add_module(module)
-            # pipeline.run_module("shift_ref")
             
             module = IFS_Centering(name_in = "centermod_ref",
                                    image_in_tag = "bin_ref_pad",
@@ -445,10 +409,6 @@ preparation.generate_fake_planet_experiments` for more information about the
                     pipeline.add_module(resid_calc)
                     pipeline.run_module("residual"+star)
             
-            
-
-
-    # TODO: properly output results! and check if header info needs to be saved as well
 
             # 7.) Get the data from the Pynpoint database
             result_dict = dict()
@@ -460,12 +420,6 @@ preparation.generate_fake_planet_experiments` for more information about the
             
             for idx, tmp_algo_name in enumerate(self.get_method_keys()):
                 result_dict[tmp_algo_name] = residuals[idx]
-            
-            # # 7.) Get the data from the Pynpoint database
-            # result_dict = dict()
-
-            # residuals = pipeline.get_data("Residual")
-            # result_dict["Residual"] = residuals
 
             # Delete the temporary database
             shutil.rmtree(pynpoint_dir)

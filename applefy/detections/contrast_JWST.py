@@ -13,17 +13,15 @@ from pathlib import Path
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-from joblib import Parallel, delayed
 
 from pynpoint import Pypeline
 
-from applefy.utils.file_handling import save_as_fits, open_fits, \
+from applefy.utils.file_handling import open_fits, \
     create_checkpoint_folders, search_for_config_and_residual_files
 from applefy.utils.photometry import AperturePhotometryMode
 from applefy.statistics.general import TestInterface
 
-from applefy.utils.file_handling import save_experiment_configs, \
-    read_fake_planet_results
+from applefy.utils.file_handling import read_fake_planet_results
 from applefy.utils.fake_planets import calculate_fake_planet_positions, \
     generate_fake_planet_experiments, add_fake_planets
 from applefy.utils.photometry import estimate_stellar_flux
@@ -783,12 +781,6 @@ class ContrastResult:
         if self.median_throughput_table is not None:
             return self.median_throughput_table
         
-        # print("COMPUTINGTHROUGHPUT PARAMETERS: ")
-        # print("planet dict: ",self.planet_dict)
-        # print("fp_residual: ", type(self.fp_residual), self.fp_residual)
-        # print("idx_table: ", type(self.idx_table), self.idx_table)
-        # print("stellar flux: ", type(self.stellar_flux),self.stellar_flux)
-        #TODO remove print statements
         self.throughput_dict, self.median_throughput_table = \
             compute_throughput_table(self.planet_dict,
                                      self.fp_residual,
