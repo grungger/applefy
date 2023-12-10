@@ -37,8 +37,8 @@ import numpy as np
 from pynpoint import Pypeline, WavelengthReadingModule, FitsReadingModule, FitCenterModule
 from pynpoint import MultiChannelReader, ShiftImagesModule, PaddingModule, DataCubeReplacer
 from IFS_Plot import PlotCenterDependantWavelength, PlotSpectrum
-from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins
-from IFS_basic_subtraction import IFS_ClassicalRefSubstraction
+from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins, IFS_ClassicalRefSubstraction
+
 from center_guess import StarCenterFixedGauss, IFS_RefStarAlignment
 from IFS_PCASubtraction import IFS_PCASubtraction
 from jwstframeselection import SelectWavelengthCenterModuleJWST
@@ -516,7 +516,7 @@ class JWSTPCASubtractionPynPoint_unopt(DataReductionInterface):
             self,
             num_pcas: List[int],
             scratch_dir: Path,
-            image_ref_in_tags: List[str],
+            image_ref: np.ndarray,
             access_pipeline: Optional[bool] = False):
         """
         Constructor of the class.
@@ -532,7 +532,7 @@ class JWSTPCASubtractionPynPoint_unopt(DataReductionInterface):
         self.num_pcas = num_pcas
         self.scratch_dir = scratch_dir
         self.publish_pipeline = access_pipeline
-        self.image_ref_in_tags = image_ref_in_tags
+        self.image_ref = image_ref
 
     def get_method_keys(self) -> List[str]:
         """
@@ -568,6 +568,12 @@ class JWSTPCASubtractionPynPoint_unopt(DataReductionInterface):
             mode='w')
 
         out_file.create_dataset("data_with_planet", data=stack_with_fake_planet)
+
+        tags = []
+        for i in range(self.image_ref.shape[0]):
+            out_file.create_dataset('pca_ref' + str(i), data=self.image_ref[i, :, :])
+            tags.append('pca_ref' + str(i))
+
         # add header information to data_set?
         out_file.close()
 
@@ -588,7 +594,7 @@ class JWSTPCASubtractionPynPoint_unopt(DataReductionInterface):
             pca_subtraction = IFS_PCASubtraction(name_in='pca_subtraction',
                                                  image_in_tag='data_with_planet',
                                                  image_out_tag='residuals',
-                                                 image_ref_in_tags=self.image_ref_in_tags,
+                                                 image_ref_in_tags=tags,
                                                  model_out_tag='pca_model',
                                                  n_pc=self.num_pcas,
                                                  pca_out_tag='Normed_PCA_components')
@@ -608,7 +614,7 @@ class JWSTPCASubtractionPynPoint_unopt(DataReductionInterface):
         # Enable print messages again
         sys.stdout = sys.__stdout__
 
-        return result_dict
+        return result_dict, None
 
     def set_config_file(self):
         import configparser
