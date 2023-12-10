@@ -8,7 +8,7 @@ applefy. It has to be installed separately.
 import sys, os
 import shutil
 import warnings
-from typing import List, Dict, Optional
+from typing import List, Optional, Dict
 from pathlib import Path
 
 
@@ -34,13 +34,14 @@ sys.path.append("C:/Users/BIgsp/Documents/GitHub/applefy")
 import h5py
 import numpy as np
 
-from pynpoint import Pypeline, WavelengthReadingModule, FitsReadingModule, FitCenterModule
+from pynpoint import Pypeline
 from pynpoint import MultiChannelReader, ShiftImagesModule, PaddingModule, DataCubeReplacer
+
 from IFS_Plot import PlotCenterDependantWavelength, PlotSpectrum
 from IFS_SimpleSubtraction import IFS_normalizeSpectrum, IFS_binning, IFS_collapseBins, IFS_ClassicalRefSubstraction
-
 from center_guess import StarCenterFixedGauss, IFS_RefStarAlignment
 from IFS_PCASubtraction import IFS_PCASubtraction
+
 from jwstframeselection import SelectWavelengthCenterModuleJWST
 from IFS_Centering import IFS_Centering
 
@@ -49,7 +50,7 @@ from IFS_Centering import IFS_Centering
 class JWSTSimpleSubtractionPynPoint_unopt(DataReductionInterface):
     """
     The JWSTSimpleSubtractionPynPoint is a wrapper around the Simple Subtraction
-    implemented in `Pynpoint_ifs`__. 
+    implemented in `Pynpoint_ifs`__.
     """
 
     def __init__(
@@ -65,7 +66,7 @@ class JWSTSimpleSubtractionPynPoint_unopt(DataReductionInterface):
             scratch_dir: A directory to store the Pynpoint database. Any
                 Pynpoint database created during the computation will be deleted
                 afterwards.
-            psf_list: List of psf template directories. If not given only 
+            psf_list: List of psf template directories. If not given only
                 the psf_template inputted in __call__ will be used.
         """
 
@@ -73,7 +74,7 @@ class JWSTSimpleSubtractionPynPoint_unopt(DataReductionInterface):
         self.psf_list = psf_list
         self.psf_dir = psf_dir
         self.publish_pipeline = access_pipeline
-    
+
     def get_method_keys(self) -> List[str]:
         """
         Get the method name "PCA (#num_pca components)".
@@ -81,9 +82,9 @@ class JWSTSimpleSubtractionPynPoint_unopt(DataReductionInterface):
         Returns:
             A list with one string "PCA (#num_pca components)".
         """
-        
+
         keys = []
-        
+
         if self.psf_list is not None:
             stars = [end.split('/')[-1] for end in self.psf_list]
             keys = ["Refstar_"+star for star in stars]
@@ -149,28 +150,14 @@ preparation.generate_fake_planet_experiments` for more information about the
                                 output_place_in=str(pynpoint_dir))
 
             self.set_config_file()
-            
+
             reference_list = []
             more_stars = False
-            
+
             if self.psf_list is not None:
                 more_stars = True
                 reference_list = self.psf_list
-            
-            # TODO: cleanup
-            #if type(stack_with_fake_planet) is np.ndarray:
-            #     cry
-                
-            # if type(psf_template) is np.ndarray:
-            #     also cry
-                
-                
-            # nframes = int(self.m_image_in_port.get_attribute("NFRAMES")[0])
 
-            # wavelengths = self.m_image_in_port.get_attribute('WAV_ARR')[0].astype(np.float16)
-            # pixelscale = self.m_image_in_port.get_attribute('PIXSCALE')[0].astype(np.float16)
-            # bands = self.m_image_in_port.get_attribute('BAND_ARR')[0].astype(str)
-            
             # =============================================================================
             # Set science frame
             # =============================================================================
@@ -185,13 +172,13 @@ preparation.generate_fake_planet_experiments` for more information about the
 
             pipeline.add_module(Import_Science)
             pipeline.run_module("readersci")
-            
-            
+
+
             # =============================================================================
             # Set ref frame
             # =============================================================================
-            
-            
+
+
             Import_Science = MultiChannelReader(name_in = "readerref",
                                         input_dir = psf_template,
                                         image_tag = "ref",
@@ -201,14 +188,14 @@ preparation.generate_fake_planet_experiments` for more information about the
 
             pipeline.add_module(Import_Science)
             pipeline.run_module("readerref")
-            
+
             # =============================================================================
             # Set ref library if given
             # =============================================================================
-            
+
             if more_stars:
                 stars = [end.split('/')[-1] for end in reference_list]
-                
+
                 for star,star_dir in zip(stars,reference_list):
                     import_module = MultiChannelReader(name_in = "reader_"+star,
                                                        input_dir = star_dir,
@@ -218,13 +205,13 @@ preparation.generate_fake_planet_experiments` for more information about the
                                                        overwrite=True)
                     pipeline.add_module(import_module)
                     pipeline.run_module("reader_"+star)
-                    
-                
-            
+
+
+
             # =============================================================================
-            #  narrowing wavelength and binning           
+            #  narrowing wavelength and binning
             # =============================================================================
-            
+
             selection = SelectWavelengthCenterModuleJWST(name_in="selective",
                                                          image_in_tag="sci",
                                                          image_out_tag="select_sci",
@@ -239,15 +226,15 @@ preparation.generate_fake_planet_experiments` for more information about the
 
             pipeline.add_module(binning)
             pipeline.run_module("binnion")
-            
+
             ReplacePlanets = DataCubeReplacer(name_in="replacer",
                                               image_in_tag="bin_sci",
                                               image_out_tag="new_sci",
                                               new_cube=stack_with_fake_planet)
             pipeline.add_module(ReplacePlanets)
             pipeline.run_module("replacer")
-            
-            
+
+
             selectionref = SelectWavelengthCenterModuleJWST(name_in="selectiveref",
                                                          image_in_tag="ref",
                                                          image_out_tag="select_ref",
@@ -262,7 +249,7 @@ preparation.generate_fake_planet_experiments` for more information about the
 
             pipeline.add_module(binningref)
             pipeline.run_module("binnionref")
-            
+
             if more_stars:
                 for star in stars:
                     selectionref = SelectWavelengthCenterModuleJWST(name_in="select_"+star,
@@ -279,8 +266,8 @@ preparation.generate_fake_planet_experiments` for more information about the
 
                     pipeline.add_module(binningref)
                     pipeline.run_module("binning_"+star)
-            
-                        
+
+
             # =============================================================================
             # Bring reference and science to same shape by Padding
             # =============================================================================
@@ -295,31 +282,19 @@ preparation.generate_fake_planet_experiments` for more information about the
 
                 pipeline.add_module(paddington)
                 pipeline.run_module("pad")
-            
+
             else:
                 paddington = PaddingModule(name_in="pad",
                                            image_in_tags=["new_sci","bin_ref"],
                                            image_out_suff="pad")
-    
+
                 pipeline.add_module(paddington)
                 pipeline.run_module("pad")
-            
+
             # =============================================================================
             # Center and Normalize science target
             # =============================================================================
 
-
-            # dat = pipeline.get_data("new_sci_pad")
-
-            # shift = StarCenterFixedGauss(dat)
-
-            # module = ShiftImagesModule(name_in='shift',
-            #                                     image_in_tag='new_sci_pad',
-            #                                     shift_xy=shift,
-            #                                     image_out_tag='centered')
-            # pipeline.add_module(module)
-            # pipeline.run_module("shift")
-            
             module = IFS_Centering(name_in = "centermod",
                                    image_in_tag = "new_sci_pad",
                                    fit_out_tag = "shift")
@@ -339,22 +314,11 @@ preparation.generate_fake_planet_experiments` for more information about the
             #                                image_out_tag='normed')
             # pipeline.add_module(module)
             # pipeline.run_module("norm")
-            
+
             # =============================================================================
             # Center and Normalize ref target
             # =============================================================================
 
-            # dat_ref = pipeline.get_data("ref_pad")
-
-            # shift_ref = StarCenterFixedGauss(dat_ref)
-
-            # module = ShiftImagesModule(name_in='shift_ref',
-            #                                     image_in_tag='ref_pad',
-            #                                     shift_xy=shift_ref,
-            #                                     image_out_tag='centered_ref')
-            # pipeline.add_module(module)
-            # pipeline.run_module("shift_ref")
-            
             module = IFS_Centering(name_in = "centermod_ref",
                                    image_in_tag = "bin_ref_pad",
                                    fit_out_tag = "shift_ref")
@@ -374,10 +338,10 @@ preparation.generate_fake_planet_experiments` for more information about the
             #                                image_out_tag='normed_ref')
             # pipeline.add_module(module)
             # pipeline.run_module("norm_ref")
-            
+
 
             # =============================================================================
-            #   Center and normalize more ref stars          
+            #   Center and normalize more ref stars
             # =============================================================================
             if more_stars:
                 for star in stars:
@@ -394,15 +358,15 @@ preparation.generate_fake_planet_experiments` for more information about the
                                                         image_out_tag='centered_'+star)
                     pipeline.add_module(module)
                     pipeline.run_module("shifter_ref"+star)
-            
+
 
             # # =============================================================================
             # # Align to science star
             # # =============================================================================
 
-            test = IFS_RefStarAlignment(name_in="aligner", 
-                                        sci_in_tag="centered", 
-                                        ref_in_tags="centered_ref", 
+            test = IFS_RefStarAlignment(name_in="aligner",
+                                        sci_in_tag="centered",
+                                        ref_in_tags="centered_ref",
                                         fit_out_tag_suff="opt",
                                         qual_method = "L2",
                                         in_rad = 0.3,
@@ -410,12 +374,12 @@ preparation.generate_fake_planet_experiments` for more information about the
                                         apertshap = "Ring")
             pipeline.add_module(test)
             pipeline.run_module("aligner")
-            
+
             if more_stars:
                 for star in stars:
-                    test = IFS_RefStarAlignment(name_in="aligner"+star, 
-                                                sci_in_tag="centered", 
-                                                ref_in_tags="centered_"+star, 
+                    test = IFS_RefStarAlignment(name_in="aligner"+star,
+                                                sci_in_tag="centered",
+                                                ref_in_tags="centered_"+star,
                                                 fit_out_tag_suff="opt",
                                                 qual_method = "L2",
                                                 in_rad = 0.3,
@@ -423,7 +387,7 @@ preparation.generate_fake_planet_experiments` for more information about the
                                                 apertshap = "Ring")
                     pipeline.add_module(test)
                     pipeline.run_module("aligner"+star)
-            
+
             # =============================================================================
             # Residual
             # =============================================================================
@@ -435,7 +399,7 @@ preparation.generate_fake_planet_experiments` for more information about the
 
             pipeline.add_module(resid_calc)
             pipeline.run_module("residual")
-            
+
             if more_stars:
                 for star in stars:
                     resid_calc = IFS_ClassicalRefSubstraction(name_in='residual'+star,
@@ -444,11 +408,7 @@ preparation.generate_fake_planet_experiments` for more information about the
 
                     pipeline.add_module(resid_calc)
                     pipeline.run_module("residual"+star)
-            
-            
 
-
-    # TODO: properly output results! and check if header info needs to be saved as well
 
             # 7.) Get the data from the Pynpoint database
             result_dict = dict()
@@ -457,15 +417,9 @@ preparation.generate_fake_planet_experiments` for more information about the
             if more_stars:
                for star in stars:
                    residuals.append(pipeline.get_data("Residual_"+star))
-            
+
             for idx, tmp_algo_name in enumerate(self.get_method_keys()):
                 result_dict[tmp_algo_name] = residuals[idx]
-            
-            # # 7.) Get the data from the Pynpoint database
-            # result_dict = dict()
-
-            # residuals = pipeline.get_data("Residual")
-            # result_dict["Residual"] = residuals
 
             # Delete the temporary database
             shutil.rmtree(pynpoint_dir)
@@ -473,12 +427,12 @@ preparation.generate_fake_planet_experiments` for more information about the
             # Enable print messages again
             sys.stdout = sys.__stdout__
             print("All PynPoint Modules have run successfully. Finishing up...")
-            
+
             if self.publish_pipeline:
                 return result_dict, pipeline
-            
+
         return result_dict, None
-    
+
     def set_config_file(self):
         import configparser
         config = configparser.ConfigParser()
@@ -496,7 +450,7 @@ preparation.generate_fake_planet_experiments` for more information about the
         config['header']['DEC'] = 'TARG_DEC'
         config['header']['WAV_START'] = 'CRVAL3'
         config['header']['WAV_INCR'] = 'CDELT3'
-        
+
         config.add_section('settings')
         config['settings']['PIXSCALE'] = '0.13'
         config['settings']['MEMORY'] = 'None'
